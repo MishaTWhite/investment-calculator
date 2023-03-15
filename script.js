@@ -1,54 +1,69 @@
 function calculateResults() {
-    const age = parseInt(document.getElementById('age').value);
-    const initialCapital = parseInt(document.getElementById('initialCapital').value);
-    const monthlyInvestment = parseInt(document.getElementById('monthlyInvestment').value);
-    const interestRate = parseFloat(document.getElementById('interestRate').value) / 100;
-    const endAge = parseInt(document.getElementById('endAge').value);
-    const interestFrequency = document.getElementById('interestFrequency').value;
+    const startAge = parseInt(document.getElementById("age").value);
+    const initialCapital = parseFloat(document.getElementById("initialCapital").value);
+    const monthlyInvestment = parseFloat(document.getElementById("monthlyInvestment").value);
+    const interestRate = parseFloat(document.getElementById("interestRate").value) / 100;
+    const endAge = parseInt(document.getElementById("endAge").value);
+    const interestFrequency = document.getElementById("interestFrequency").value;
 
-    let periodsPerYear;
-    let investmentPerPeriod;
+    const inflationRate = parseFloat(document.getElementById("inflationRate").value) / 100;
+    const adjustForInflation = document.getElementById("adjustForInflation").checked;
 
-    switch (interestFrequency) {
-        case 'monthly':
-            periodsPerYear = 12;
-            investmentPerPeriod = monthlyInvestment;
-            break;
-        case 'quarterly':
-            periodsPerYear = 4;
-            investmentPerPeriod = monthlyInvestment * 3;
-            break;
-        case 'annually':
-            periodsPerYear = 1;
-            investmentPerPeriod = monthlyInvestment * 12;
-            break;
-        default:
-            periodsPerYear = 12;
-    }
+    const resultTable = document.getElementById("resultTable");
+    const tbody = resultTable.getElementsByTagName("tbody")[0];
 
-    const annualInvestment = monthlyInvestment * 12;
-    const interestRatePerPeriod = interestRate / periodsPerYear;
+    tbody.innerHTML = "";
+
     let capital = initialCapital;
-    let tbody = document.getElementById('resultTable').querySelector('tbody');
-    tbody.innerHTML = '';
+    let totalInvested = 0;
 
-    for (let currentAge = age; currentAge <= endAge; currentAge++) {
-        let capitalAtStartOfYear = capital;
-        let annualCompoundInterest = 0;
+    for (let i = startAge; i <= endAge; i++) {
+        const startOfYearCapital = capital;
+        let investedAmount = 0;
 
-        for (let period = 1; period <= periodsPerYear; period++) {
-            let interest = capital * interestRatePerPeriod;
-            capital += interest;
-            annualCompoundInterest += interest;
+        for (let j = 1; j <= 12; j++) {
+            let currentMonthlyInvestment = monthlyInvestment;
 
-            capital += investmentPerPeriod;
+            if (adjustForInflation) {
+                currentMonthlyInvestment *= Math.pow(1 + inflationRate, i - startAge);
+            }
+
+            investedAmount += currentMonthlyInvestment;
+            capital += currentMonthlyInvestment;
+
+            switch (interestFrequency) {
+                case "monthly":
+                    capital *= Math.pow(1 + interestRate / 12, 1);
+                    break;
+                case "quarterly":
+                    if (j % 3 === 0) {
+                        capital *= Math.pow(1 + interestRate / 4, 1);
+                    }
+                    break;
+                case "annually":
+                    if (j === 12) {
+                        capital *= Math.pow(1 + interestRate, 1);
+                    }
+                    break;
+            }
         }
 
-        let row = tbody.insertRow();
-        row.insertCell().textContent = currentAge;
-        row.insertCell().textContent = Math.round(capitalAtStartOfYear);
-        row.insertCell().textContent = Math.round(annualInvestment);
-        row.insertCell().textContent = Math.round(annualCompoundInterest);
-        row.insertCell().textContent = Math.round((capital - capitalAtStartOfYear - annualInvestment) / 12);
+        totalInvested += investedAmount;
+        const capitalGrowth = capital - startOfYearCapital - investedAmount;
+        const endOfYearIncome = (capital - totalInvested) * interestRate / 12;
+        const adjustedIncome = endOfYearIncome / Math.pow(1 + inflationRate, i - startAge);
+
+        const row = `
+            <tr>
+                <td>${i}</td>
+                <td>${Math.round(startOfYearCapital)}</td>
+                <td>${Math.round(investedAmount)}</td>
+                <td>${Math.round(capitalGrowth)}</td>
+                <td>${Math.round(endOfYearIncome)}</td>
+                <td>${Math.round(adjustedIncome)}</td>
+            </tr>
+        `;
+
+        tbody.insertAdjacentHTML("beforeend", row);
     }
 }
